@@ -1,9 +1,8 @@
 # matis-mem
 
-A terminal-native AI workspace that gives your prompts memory, structure, and continuity.
+**v0.2.0** — Terminal AI workspace with persistent memory, context discipline, and automatic logging.
 
-This is not a wrapper around LLMs.
-It is a **stateful execution system** that enforces context discipline and logs every interaction.
+This is not a wrapper around LLMs. It is a **stateful execution system** that enforces context discipline and logs every interaction.
 
 ---
 
@@ -12,135 +11,154 @@ It is a **stateful execution system** that enforces context discipline and logs 
 Most AI tools are stateless.
 
 That means:
+- you repeat context constantly
+- past work is lost
+- outputs are inconsistent
+- switching models breaks flow
 
-* you repeat context constantly
-* past work is lost
-* outputs are inconsistent
-* switching models breaks flow
-
-matis-mem fixes that by making **memory and context first-class**.
+**matis-mem** fixes that by making **memory and context first-class citizens**.
 
 ---
 
-## ✨ Features
+## ✨ Core Features
 
 ### 🧠 Persistent Projects
 
-Define what you're working on once.
+Define what you're working on once. Each project stores:
+- **goal** — what you're trying to do
+- **constraints** — what matters
+- **decisions** — what you've chosen
+- **notes** — any context
 
-Each project stores:
-
-* goal
-* constraints
-* decisions
-* notes
-
-Every prompt automatically includes this context.
+Every prompt automatically includes this context. No more repeating yourself.
 
 ---
 
 ### 🔁 Session Memory (Automatic)
 
 Every run is saved and reused.
-
-* last *N* sessions are injected into new prompts
-* no copy-pasting
-* real continuity across work
+- last *N* sessions are injected into new prompts
+- no copy-pasting
+- real continuity across work
 
 ---
 
 ### ⚙️ Deterministic Context Builder
 
-No hidden behavior.
+No hidden behavior. Each prompt is built from:
+1. **project context** — always first
+2. **recent sessions** — last N (default: 2)
+3. **knowledge search** — optional keyword lookup
 
-Each prompt is built from:
-
-* project context
-* recent sessions
-* optional knowledge search
-
-You decide what goes in.
+You decide what goes in via checkboxes before every run.
 
 ---
 
-### 🔌 Multi-Model Support
+### 🔌 Multi-Model Execution
 
-Run the same workflow across:
+Run the same workflow across different models:
 
-* Ollama (local models like `llama3`, `mistral`)
-* Gemini CLI
-* Claude (via API)
-* Mistral (via API)
-* Amp Agent
-* Custom executors
+**Local:**
+- Ollama (`llama3`, `mistral`, `codellama`, `deepseek-coder`)
+
+**Cloud APIs:**
+- Gemini (native or CLI)
+- Claude (print or code mode)
+- Mistral
+
+**Agents:**
+- Amp (Sourcegraph AI agent)
+- Vibe (local custom model)
 
 Switch models anytime without losing context.
 
 ---
 
-### 🖥️ Terminal UI (TUI)
+### 🖥️ Multi-Tab Terminal UI
 
-Keyboard-driven interface with:
+Keyboard-driven interface with 4 tabs:
 
-* project selector
-* prompt editor
-* context controls
-* model switcher
-* response viewer
+1. **[1] RUN** — Write prompts with memory context
+2. **[2] AGENTS** — Live feed of external agent sessions
+3. **[3] SHIMS** — Install logging wrappers for agent CLIs
+4. **[4] KNOWLEDGE** — Browse and add knowledge base
 
 ---
 
 ### 📚 Knowledge Base
 
-Store reusable insights and inject them when needed.
-
-* keyword-based search
-* optional per prompt
+Store reusable insights and inject them when needed:
+- keyword-based search
+- optional per-prompt inclusion
+- plain JSON storage
 
 ---
 
 ### 🧾 Automatic Logging
 
 Every interaction is saved:
+- prompt
+- context used
+- response
+- model used
+- duration (ms)
 
-* prompt
-* context used
-* response
-* duration
+All stored as plain JSON + JSONL for agent logs.
 
-All stored as plain JSON.
+---
+
+### 🔗 Agent Shims
+
+Install logging wrappers for external agent CLIs:
+- `claude`
+- `amp`
+- `gemini`
+- `vibe`
+- `aider`
+- `copilot`
+- `mistral`
+- `ollama`
+
+All calls from ANY terminal are auto-logged when shims are active.
 
 ---
 
 ## 📦 Installation
 
-### 1. Clone
+### Requirements
+
+- **Rust 1.75+** (or: `cargo update unicode-segmentation --precise 1.12.0`)
+- **At least one model installed** (see below)
+
+### Install matis-mem
 
 ```bash
-git clone <repo> && cd matis-mem
-```
-
----
-
-### 2. Install
-
-```bash
+git clone <repo> matis-mem && cd matis-mem
 bash install.sh
 ```
 
-Requires: **Rust 1.75+**
+This compiles the binary and places it in `~/.local/bin/matis-mem`.
 
 ---
 
-### 3. Install a Model
+## 🚀 Getting Started
 
-#### Option A — Local (recommended)
+### 1. Start matis-mem
+
+```bash
+matis-mem
+```
+
+### 2. Install a Model
+
+Press `[3]` for **SHIMS** tab, or install manually:
+
+#### Option A — Ollama (recommended for local)
 
 ```bash
 ollama pull llama3
+ollama serve  # in another terminal
 ```
-
----
 
 #### Option B — Gemini CLI
 
@@ -149,22 +167,16 @@ npm install -g @google/gemini-cli
 gemini auth
 ```
 
----
-
 #### Option C — Claude (API)
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
----
-
-## 🚀 Usage
-
-Launch:
+#### Option D — Mistral (API)
 
 ```bash
-matis-mem
+export MISTRAL_API_KEY=sk-...
 ```
 
 ---
@@ -172,7 +184,7 @@ matis-mem
 ## 🖥️ Interface Overview
 
 ```text
-◆ matis-mem  project: millcheck  model: ollama/llama3  ◉ done
+◆ matis-mem v0.2.0  [1]RUN [2]AGENTS [3]SHIMS [4]KNOWLEDGE
 
 ┌─────────────────┬──────────────────────────────────────────────────┐
 │ PROJECTS        │ PROMPT                                            │
@@ -182,39 +194,36 @@ matis-mem
 │                 │ [x] project context    │ ▶ ollama/llama3         │
 │                 │ [x] last 2 sessions    │   ollama/mistral        │
 │                 │ [ ] knowledge search   │   gemini-cli            │
-│                 │ Ctrl+R / F5 = RUN      │   claude                │
+│                 │ [+ sessions] [- sessions] │   claude --print     │
+│                 │ Ctrl+R = RUN           │   amp                   │
 │                 ├────────────────────────┴─────────────────────────│
-│                 │ RESPONSE                                          │
+│                 │ RESPONSE (↓ scroll)                               │
 │                 │ The panic occurs because `parse_date()` returns   │
 │                 │ `Option<Date>` but the caller uses `.unwrap()`…   │
 └─────────────────┴───────────────────────────────────────────────────┘
+
+◀ ▶ nav | Tab cycle | Ctrl+R run | Ctrl+N new | Ctrl+K knowledge | q quit
 ```
 
 ---
 
-## 🔁 Workflow
+## 🔁 Typical Workflow
 
-### 1. Create a Project
+### Step 1 — Create a Project
 
-`Ctrl + N`
-
-Example:
+Press `Ctrl+N`:
 
 ```
-Name: millcheck  
+Name: millcheck
 Goal: validate mill test certificates for steel
-Constraints: must parse dates correctly, handle nulls
+Constraints: must handle null dates, ISO 8601 format
 ```
 
----
+### Step 2 — Select Project
 
-### 2. Select Project
+Use `j/k` to navigate, press `Enter` to select.
 
-Use `j/k` and press `Enter`
-
----
-
-### 3. Write Prompt
+### Step 3 — Write Prompt
 
 Navigate to prompt panel (`Tab`):
 
@@ -222,110 +231,148 @@ Navigate to prompt panel (`Tab`):
 fix null date panic in parser
 ```
 
----
+### Step 4 — Check Context
 
-### 4. Run
+Verify checkboxes in the CONTEXT panel:
+- `[x]` project context
+- `[x]` last 2 sessions
+- `[ ]` knowledge search (toggle with `k`)
 
-```
-Ctrl + R
-```
+### Step 5 — Run
 
----
+Press `Ctrl+R` or `F5`.
 
-### 5. Context is Built Automatically
-
-Example:
+Context is injected automatically:
 
 ```text
 [PROJECT: millcheck]
 Goal: validate mill test certificates for steel
-Constraints: must parse dates correctly, handle nulls
+Constraints: must handle null dates, ISO 8601 format
 
 [RECENT SESSIONS]
-Session 1: "why does parse_date panic?"
-Response: Because it unwraps Option<Date> without checking...
+Q: why does parse_date panic?
+A: Because it unwraps Option<Date> without checking...
 
-[QUESTION]
+Q: how to handle Option<T>?
+A: Use match, if let, or .unwrap_or()...
+
+[YOUR QUESTION]
 fix null date panic in parser
 ```
 
----
+### Step 6 — Session is Logged
 
-### 6. Session is Logged
-
-Saved automatically to:
+Automatically saved to:
 
 ```text
-~/.matis-mem/sessions/<project>/
+~/.matis-mem/sessions/millcheck/20260402_101500_001.json
 ```
+
+Contains: prompt, response, model, duration.
 
 ---
 
 ## ⌨️ Keybindings
 
-### Core
+### Global
 
-| Key         | Action        |
-| ----------- | ------------- |
-| Tab / Shift+Tab | Switch panel  |
-| Ctrl+R / F5 | Run prompt    |
-| Ctrl+N      | New project   |
-| Ctrl+K      | Add knowledge |
-| q / Ctrl+C  | Quit          |
+| Key | Action |
+|-----|--------|
+| `1`, `2`, `3`, `4` | Switch tabs |
+| `q` / `Ctrl+C` | Quit |
+| `Ctrl+L` | Clear terminal |
 
-### Navigation
+### RUN Tab
 
-| Area     | Keys         |
-| -------- | ------------ |
-| Projects | j / k        |
-| Models   | j / k        |
-| Response | j / k, g / G |
+| Key | Action |
+|-----|--------|
+| `Tab` / `Shift+Tab` | Cycle focus (Projects → Prompt → Context → Model → Response) |
+| `j` / `k` / `↑` / `↓` | Navigate lists |
+| `Enter` | Select project / toggle checkbox |
+| `Ctrl+N` | New project |
+| `Ctrl+R` / `F5` | Run prompt |
+| `Shift+Enter` | Newline in prompt |
+| `Ctrl+K` | Add knowledge entry |
+| `Space` | Toggle project context checkbox |
+| `+` / `-` | Increase/decrease session count |
+| `k` | Toggle knowledge search checkbox |
+| `g` / `G` | Jump to top/bottom of response |
+| `c` | Clear response |
+| `y` | Copy response to clipboard |
 
-### Context Controls
+### AGENTS Tab
 
-| Key   | Action                  |
-| ----- | ----------------------- |
-| Space | Toggle project context  |
-| +/-   | Adjust session count    |
-| k     | Toggle knowledge search |
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Scroll agent log |
+| `Space` | Toggle agent on/off |
 
-### Editing
+### SHIMS Tab
 
-| Key         | Action         |
-| ----------- | -------------- |
-| Shift+Enter | Newline in prompt |
-| Ctrl+C      | Quit from prompt |
+| Key | Action |
+|-----|--------|
+| `Space` | Install/uninstall shim |
+| `j` / `k` | Navigate available shims |
+
+### KNOWLEDGE Tab
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Navigate knowledge |
+| `Ctrl+K` | Add new entry |
+| `Enter` | View/edit entry |
 
 ---
 
 ## 📁 Data Storage
+
+All data is stored as plain text (JSON / JSONL) in `~/.matis-mem/`:
 
 ```text
 ~/.matis-mem/
 ├── projects/
 │   ├── millcheck.json
 │   └── api-gateway.json
+│
 ├── sessions/
 │   ├── millcheck/
-│   │   ├── 20260401_143022_001.json
-│   │   └── 20260401_143045_002.json
+│   │   ├── 20260402_101500_001.json
+│   │   └── 20260402_102045_002.json
 │   └── api-gateway/
-│       └── 20260401_144200_001.json
+│       └── 20260402_103200_001.json
+│
 ├── knowledge/
 │   ├── rust_patterns.json
 │   └── project_context.json
-└── agent_logs/
-    └── 2026-04-01.jsonl
+│
+├── agent_logs/
+│   └── 2026-04-02.jsonl
+│
+└── shims/
+    ├── claude
+    ├── amp
+    ├── gemini
+    └── vibe
 ```
 
-All files are human-readable JSON.
-
-**Session format:**
+### Project Schema
 
 ```json
 {
-  "timestamp": "2026-04-01T14:30:22Z",
-  "prompt": "fix null date panic in parser",
+  "name": "millcheck",
+  "goal": "validate mill test certificates",
+  "constraints": "must handle null dates",
+  "decisions": ["use rust for parsing", "error on invalid dates"],
+  "notes": "critical path for Q1"
+}
+```
+
+### Session Schema
+
+```json
+{
+  "timestamp": "2026-04-02T10:15:00Z",
+  "prompt": "fix null date panic",
   "context_summary": "project + 2 sessions",
   "model": "ollama/llama3",
   "response": "...",
@@ -333,114 +380,213 @@ All files are human-readable JSON.
 }
 ```
 
+### Agent Log Schema (JSONL)
+
+```json
+{
+  "timestamp": "2026-04-02T10:15:00Z",
+  "agent": "amp",
+  "command": "amp ask fix parser bug",
+  "response": "...",
+  "thread_id": "T-...",
+  "indexed": true
+}
+```
+
 ---
 
 ## 🏗️ Architecture
 
-### Core Modules
+### Modules
 
 ```text
 src/
-├── executor/    # model execution layer
-├── context/     # context building
-├── data/        # storage (projects, sessions, knowledge)
-├── ui/          # terminal interface (ratatui)
-├── watcher/     # log monitoring & indexing
-├── config.rs    # configuration
-├── error.rs     # error types
-└── main.rs      # app entry point
+├── executor/          # Model execution layer
+│   ├── ollama.rs      # Ollama executor
+│   ├── gemini.rs      # Gemini executors
+│   ├── claude.rs      # Claude executors
+│   ├── mistral.rs     # Mistral executor
+│   ├── amp.rs         # Amp agent executor
+│   ├── vibe.rs        # Vibe executor
+│   ├── generic.rs     # Custom command executor
+│   └── mod.rs         # Trait & Model enum
+│
+├── context/           # Context building
+│   ├── builder.rs     # Assembles context from project + sessions + knowledge
+│   └── mod.rs
+│
+├── data/              # Persistent storage
+│   ├── project.rs     # Project CRUD
+│   ├── session.rs     # Session CRUD
+│   ├── knowledge.rs   # Knowledge CRUD
+│   ├── agent_log.rs   # Agent log writing
+│   └── mod.rs
+│
+├── ui/                # Terminal interface
+│   ├── app.rs         # App state & event handling
+│   ├── render.rs      # Rendering logic
+│   ├── events.rs      # Keybindings
+│   ├── theme.rs       # Colors
+│   └── mod.rs
+│
+├── watcher/           # Log monitoring
+│   ├── mod.rs
+│   ├── log_watcher.rs # File watcher for agent logs
+│   └── shim.rs        # Shim installation
+│
+├── config.rs          # Configuration
+├── error.rs           # Error types
+└── main.rs            # Entry point
 ```
 
-### Execution Flow
+### Data Flow
 
 ```
-User Input
+User Input (keybinding)
     ↓
-Context Builder (project + sessions + knowledge)
+Event Handler (ui/events.rs)
     ↓
-Executor (routes to model)
+App State (ui/app.rs)
     ↓
-Response
+If "Run": Context Builder → Executor
     ↓
-Session Logger (saves automatically)
+Response → Session Logger
+    ↓
+UI Render (ui/render.rs)
 ```
 
 ---
 
 ## ⚙️ Design Principles
 
-* **Deterministic context** — no magic. You see exactly what's injected.
-* **Small > big** — default is project + 2 sessions. Increase only when needed.
-* **Single execution path** — all models use unified interface.
-* **Mandatory logging** — every run is saved before confirmation.
-* **UI ≠ logic** — interface only reads state. Logic is in core modules.
-* **Extensible** — adding models means implementing one trait.
+1. **Deterministic context** — No magic injection. You see exactly what's being sent via checkboxes.
+2. **Small > big** — Default is project + 2 sessions. Increase only when needed.
+3. **Single execution path** — All models use unified `executor::run(model, prompt)` interface.
+4. **Mandatory logging** — Every session is saved before UI confirmation.
+5. **UI ≠ Logic** — Interface only reads/renders state. Logic lives in core modules.
+6. **Plain text storage** — Easy to inspect, version control, and migrate.
+7. **Extensible** — Adding models means implementing one `Executor` trait.
 
 ---
 
-## 🔧 Adding a New Model
+## 🔧 Extending
 
-### 1. Create executor
+### Adding a New Model
+
+1. **Create executor** (`src/executor/mymodel.rs`):
 
 ```rust
-// src/executor/mymodel.rs
 use crate::executor::Executor;
+use anyhow::Result;
 
 pub struct MyModelExecutor;
 
+impl MyModelExecutor {
+    pub fn new() -> Self { Self }
+}
+
 impl Executor for MyModelExecutor {
     fn name(&self) -> &str { "mymodel" }
+    
     fn run(&self, prompt: &str) -> Result<String> {
-        // spawn subprocess, return stdout
-        unimplemented!()
+        // spawn subprocess, call API, etc.
+        // return stdout/response
+        todo!()
     }
 }
 ```
 
-### 2. Register in mod.rs
+2. **Register in `src/executor/mod.rs`**:
 
 ```rust
-// src/executor/mod.rs
 mod mymodel;
 pub use mymodel::MyModelExecutor;
 ```
 
-### 3. Add to Model enum
+3. **Add to `Model` enum**:
 
-Update `Model` enum and `impl Model::all_presets()`.
+```rust
+pub enum Model {
+    // ... existing variants ...
+    MyModel,
+}
+```
+
+4. **Add to `Model::executor()`**:
+
+```rust
+Model::MyModel => Box::new(mymodel::MyModelExecutor::new()),
+```
+
+5. **Add to `Model::presets()`**:
+
+```rust
+Model::MyModel,
+```
 
 Done — it appears in the model selector automatically.
 
 ---
 
-## ⚠️ Compatibility Note
+### Adding a New Shim
 
-Rust 1.75 compatibility:
-
-```bash
-cargo update unicode-segmentation --precise 1.12.0
-```
+Shims are logging wrappers for external agent CLIs. See `src/watcher/shim.rs` for template.
 
 ---
 
-## 🚧 Limitations
+## 📊 Dependencies
 
-* no embeddings (yet)
-* keyword search only
-* no cloud sync
-* no multi-user support
-* single-threaded execution
+| Crate | Purpose |
+|-------|---------|
+| `ratatui` 0.26 | Terminal UI |
+| `crossterm` 0.27 | Terminal events & control |
+| `serde_json` 1 | JSON storage |
+| `chrono` 0.4 | Timestamps |
+| `anyhow` 1 | Error handling |
+| `dirs` 5 | XDG dirs |
+| `notify` 6 | File watcher |
+
+---
+
+## 🚧 Known Limitations
+
+- **No embeddings** — keyword search only
+- **No cloud sync** — local files only
+- **No multi-user** — single-user TUI
+- **Single-threaded** — execution is blocking
+- **TTY only** — requires interactive terminal
 
 ---
 
 ## 🧭 Roadmap
 
-* semantic search via embeddings
-* prompt templates and macros
-* multi-agent workflows
-* response streaming
-* performance optimizations
-* web UI option
+- [ ] Semantic search via embeddings
+- [ ] Prompt templates and macros
+- [ ] Multi-agent orchestration
+- [ ] Response streaming
+- [ ] Performance optimizations
+- [ ] Web UI option
+- [ ] Collaborative sessions
+
+---
+
+## 🐛 Troubleshooting
+
+### "matis-mem: requires an interactive terminal"
+
+Run from a real terminal, not a non-interactive shell.
+
+### Models not showing in selector
+
+Ensure executors are properly registered in `src/executor/mod.rs` and compiled.
+
+### Sessions not saving
+
+Check `~/.matis-mem/sessions/` directory exists and is writable.
+
+### Keybindings not responding
+
+Ensure terminal supports raw mode (most modern terminals do).
 
 ---
 
@@ -452,8 +598,8 @@ MIT
 
 ## Final Note
 
-This tool only works if you actually use it consistently.
+**This tool only works if you actually use it consistently.**
 
 If you bypass it and go back to raw AI commands, you're back to stateless chaos.
 
-The discipline is the feature.
+**The discipline is the feature.**
