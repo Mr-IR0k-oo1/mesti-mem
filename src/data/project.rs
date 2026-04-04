@@ -1,28 +1,21 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-
 use crate::config::projects_dir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Project {
-    pub name: String,
-    pub goal: String,
+    pub name:        String,
+    pub goal:        String,
     pub constraints: Vec<String>,
-    pub decisions: Vec<String>,
+    pub decisions:   Vec<String>,
     #[serde(default)]
-    pub notes: String,
+    pub notes:       String,
 }
 
 impl Project {
     pub fn new(name: impl Into<String>, goal: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            goal: goal.into(),
-            constraints: Vec::new(),
-            decisions: Vec::new(),
-            notes: String::new(),
-        }
+        Self { name: name.into(), goal: goal.into(), constraints: vec![], decisions: vec![], notes: String::new() }
     }
 
     fn path(name: &str) -> PathBuf {
@@ -31,6 +24,7 @@ impl Project {
 
     pub fn save(&self) -> Result<()> {
         let p = Self::path(&self.name);
+        if let Some(d) = p.parent() { std::fs::create_dir_all(d)?; }
         let tmp = p.with_extension("tmp");
         std::fs::write(&tmp, serde_json::to_string_pretty(self)?)?;
         std::fs::rename(tmp, p)?;
@@ -38,9 +32,7 @@ impl Project {
     }
 
     pub fn load(name: &str) -> Result<Self> {
-        let p = Self::path(name);
-        let raw = std::fs::read_to_string(&p)?;
-        Ok(serde_json::from_str(&raw)?)
+        Ok(serde_json::from_str(&std::fs::read_to_string(Self::path(name))?)?)
     }
 
     pub fn list() -> Result<Vec<String>> {
@@ -52,9 +44,7 @@ impl Project {
                 let p = e.path();
                 if p.extension()?.to_str()? == "json" {
                     Some(p.file_stem()?.to_string_lossy().to_string())
-                } else {
-                    None
-                }
+                } else { None }
             })
             .collect();
         names.sort();
@@ -67,10 +57,8 @@ impl Project {
         Ok(())
     }
 
-    /// Format as context block for prompt injection
     pub fn as_context(&self) -> String {
-        let mut s = format!("[PROJECT: {}]\n", self.name);
-        s += &format!("Goal: {}\n", self.goal);
+        let mut s = format!("[PROJECT: {}]\nGoal: {}\n", self.name, self.goal);
         if !self.constraints.is_empty() {
             s += &format!("Constraints: {}\n", self.constraints.join(", "));
         }

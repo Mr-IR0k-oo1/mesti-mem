@@ -1,50 +1,25 @@
 use anyhow::{bail, Result};
-use std::process::{Command, Stdio};
-
+use std::process::Command;
 use super::Executor;
 
-pub struct GeminiExecutor {
-    use_cli: bool,
-}
+pub struct GeminiExecutor { cli_mode: bool }
 
 impl GeminiExecutor {
-    pub fn new(use_cli: bool) -> Self {
-        Self { use_cli }
-    }
+    pub fn new(cli_mode: bool) -> Self { Self { cli_mode } }
 }
 
 impl Executor for GeminiExecutor {
-    fn name(&self) -> &str {
-        if self.use_cli { "gemini-cli" } else { "gemini" }
-    }
-
+    fn name(&self) -> &str { if self.cli_mode { "gemini-cli" } else { "gemini" } }
     fn run(&self, prompt: &str) -> Result<String> {
-        // Support both `gemini` and `gemini-cli` depending on what's installed
-        let cmd_name = if self.use_cli { "gemini" } else { "gemini" };
-
-        if Command::new("which").arg(cmd_name)
-            .stdout(Stdio::null()).stderr(Stdio::null())
-            .status().map(|s| !s.success()).unwrap_or(true)
-        {
-            bail!(
-                "'{}' not found in PATH.\nInstall: npm install -g @google/gemini-cli",
-                cmd_name
-            );
+        if !crate::platform::bin_available("gemini") {
+            bail!("gemini not found. Install: npm install -g @google/gemini-cli && gemini auth");
         }
-
-        let output = Command::new(cmd_name)
-            .args(["-p", prompt])
-            .output()?;
-
-        if !output.status.success() {
-            let err = String::from_utf8_lossy(&output.stderr);
-            bail!("gemini exited with error: {}", err.trim());
+        let out = Command::new("gemini").args(["-p", prompt]).output()?;
+        if !out.status.success() {
+            bail!("gemini failed: {}", String::from_utf8_lossy(&out.stderr).trim());
         }
-
-        let response = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if response.is_empty() {
-            bail!("gemini returned empty response");
-        }
-        Ok(response)
+        let r = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if r.is_empty() { bail!("gemini returned empty response"); }
+        Ok(r)
     }
 }

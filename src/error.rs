@@ -4,16 +4,12 @@ use thiserror::Error;
 pub enum MatisError {
     #[error("IO: {0}")]
     Io(#[from] std::io::Error),
-
     #[error("JSON: {0}")]
     Json(#[from] serde_json::Error),
-
-    #[error("Project not found: {0}")]
-    ProjectNotFound(String),
-
-    #[error("Executor error: {0}")]
+    #[error("Not found: {0}")]
+    NotFound(String),
+    #[error("Executor: {0}")]
     Executor(String),
-
-    #[error("No active project")]
-    NoActiveProject,
+    #[error("Validation: {0}")]
+    Validation(String),
 }

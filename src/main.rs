@@ -4,8 +4,9 @@ mod context;
 mod data;
 mod error;
 mod executor;
-mod watcher;
+mod platform;
 mod ui;
+mod watcher;
 
 use anyhow::Result;
 use crossterm::{
@@ -21,15 +22,24 @@ use ui::app::App;
 fn main() {
     for arg in std::env::args().skip(1) {
         match arg.as_str() {
-            "--version" | "-V" => { println!("matis-mem v{}", env!("CARGO_PKG_VERSION")); return; }
-            "--help" | "-h"    => { print_help(); return; }
+            "--version" | "-V" => {
+                println!("matis-mem v{} ({})", env!("CARGO_PKG_VERSION"), platform::os_name());
+                return;
+            }
+            "--help" | "-h" => {
+                config::init();
+                print_help();
+                return;
+            }
             _ => {}
         }
     }
-    if !is_tty() {
+
+    if !platform::is_tty() {
         eprintln!("matis-mem: requires an interactive terminal");
         std::process::exit(1);
     }
+
     if let Err(e) = run() {
         let _ = disable_raw_mode();
         let _ = execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture);
@@ -81,34 +91,41 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> 
     Ok(())
 }
 
-fn is_tty() -> bool {
-    use std::os::unix::io::AsRawFd;
-    unsafe { libc::isatty(io::stdout().as_raw_fd()) != 0 }
-}
-
 fn print_help() {
-    println!("matis-mem v{}", env!("CARGO_PKG_VERSION"));
+    println!("matis-mem v{} — {}", env!("CARGO_PKG_VERSION"), platform::os_name());
     println!();
     println!("USAGE");
     println!("  matis-mem              Launch TUI");
-    println!("  matis-mem --version    Version");
-    println!("  matis-mem --help       Help");
+    println!("  matis-mem --version    Version + OS");
+    println!("  matis-mem --help       This help");
     println!();
-    println!("DATA       ~/.matis-mem/");
-    println!("SHIMS      ~/.matis-mem/shims/   (install via [3] SHIMS tab)");
+    println!("DATA:   {}", platform::data_dir_display());
+    println!("SHIMS:  {}", config::shims_dir().display());
     println!();
     println!("TABS");
-    println!("  [1] RUN        Run prompts against any model with memory context");
-    println!("  [2] AGENTS     Live feed of external agent sessions (claude, amp, etc.)");
-    println!("  [3] SHIMS      Install/manage logging wrappers for agent CLIs");
-    println!("  [4] KNOWLEDGE  Browse and add your knowledge base");
+    println!("  [1] RUN        Run prompts with automatic context injection");
+    println!("  [2] AGENTS     Live feed of external agent sessions");
+    println!("  [3] SHIMS      Install logging wrappers for agent CLIs");
+    println!("  [4] KNOWLEDGE  Browse, add, import, export knowledge base");
     println!();
-    println!("MODELS SUPPORTED");
-    println!("  ollama/llama3     ollama/mistral    ollama/codellama");
-    println!("  gemini-cli        claude --print    claude code");
-    println!("  amp               vibe              mistral CLI");
+    println!("GLOBAL KEYS");
+    println!("  1-4 / Tab     Switch tabs");
+    println!("  Ctrl+R / F5   Run prompt");
+    println!("  Ctrl+N        New project");
+    println!("  Ctrl+K        Add knowledge");
+    println!("  Ctrl+M        Refresh model list");
+    println!("  Ctrl+I        Import knowledge file/dir");
+    println!("  Ctrl+E        Export all knowledge as bundle");
+    println!("  q / Ctrl+C    Quit");
     println!();
-    println!("SHIM AGENTS");
-    println!("  claude  amp  gemini  vibe  aider  copilot  mistral  ollama");
-    println!("  All calls from ANY terminal are auto-logged when shims are active.");
+    println!("MODELS (auto-detected at startup)");
+    println!("  ollama/*      requires: ollama + pulled models");
+    println!("  gemini-cli    requires: npm i -g @google/gemini-cli && gemini auth");
+    println!("  claude        requires: npm i -g @anthropic-ai/claude-code");
+    println!("  amp           requires: ampcode.com");
+    println!("  vibe          requires: vibe or cursor CLI");
+    println!();
+    for line in platform::install_instructions() {
+        println!("  {}", line);
+    }
 }

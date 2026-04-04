@@ -1,7 +1,7 @@
 pub mod amp;
 pub mod claude;
-pub mod generic;
 pub mod gemini;
+pub mod generic;
 pub mod mistral;
 pub mod ollama;
 pub mod vibe;
@@ -37,17 +37,17 @@ impl Model {
             Model::ClaudeCode         => "claude code".into(),
             Model::Amp                => "amp".into(),
             Model::Vibe               => "vibe".into(),
-            Model::Custom { label, .. }=> label.clone(),
+            Model::Custom { label, .. } => label.clone(),
         }
     }
 
     pub fn category(&self) -> &'static str {
         match self {
-            Model::Ollama { .. } | Model::Mistral { .. } => "Local",
-            Model::Gemini | Model::GeminiCli             => "Cloud",
-            Model::ClaudePrint | Model::ClaudeCode        => "Claude",
-            Model::Amp | Model::Vibe                      => "Agents",
-            Model::Custom { .. }                          => "Custom",
+            Model::Ollama  { .. } | Model::Mistral { .. } => "Local",
+            Model::Gemini  | Model::GeminiCli             => "Cloud",
+            Model::ClaudePrint | Model::ClaudeCode         => "Claude",
+            Model::Amp     | Model::Vibe                   => "Agents",
+            Model::Custom  { .. }                          => "Custom",
         }
     }
 
@@ -62,29 +62,77 @@ impl Model {
             Model::Amp               => Box::new(amp::AmpExecutor::new()),
             Model::Vibe              => Box::new(vibe::VibeExecutor::new()),
             Model::Custom { label, command, args } => Box::new(
-                generic::GenericExecutor::new(
-                    label.clone(), command.clone(),
-                    args.iter().map(|s| s.as_str()).collect(),
-                )
+                generic::GenericExecutor::new(label.clone(), command.clone(),
+                    args.iter().map(|s| s.as_str()).collect())
             ),
         }
     }
 
-    pub fn presets() -> Vec<Model> {
-        vec![
-            Model::Ollama   { model: "llama3".into() },
-            Model::Ollama   { model: "mistral".into() },
-            Model::Ollama   { model: "codellama".into() },
-            Model::Ollama   { model: "deepseek-coder".into() },
-            Model::Mistral  { model: "mistral-small".into() },
-            Model::GeminiCli,
-            Model::Gemini,
-            Model::ClaudePrint,
-            Model::ClaudeCode,
-            Model::Amp,
-            Model::Vibe,
-        ]
+    /// Detect only installed models — runs `ollama list` and checks PATH for each binary.
+    pub fn detect_available() -> Vec<Model> {
+        let mut models = vec![];
+        let av = crate::platform::bin_available;
+
+        // ── Local ollama ──────────────────────────────────────────────────────
+        if av("ollama") {
+            let pulled = query_ollama_models();
+            if pulled.is_empty() {
+                // Installed but nothing pulled yet — show placeholder
+                models.push(Model::Custom {
+                    label:   "ollama (no models pulled)".into(),
+                    command: "echo".into(),
+                    args:    vec!["run: ollama pull llama3".into()],
+                });
+            } else {
+                for m in pulled { models.push(Model::Ollama { model: m }); }
+            }
+        }
+
+        // ── Local mistral CLI ─────────────────────────────────────────────────
+        if av("mistral") {
+            models.push(Model::Mistral { model: "mistral-small".into() });
+        }
+
+        // ── Cloud: gemini ─────────────────────────────────────────────────────
+        if av("gemini") {
+            models.push(Model::GeminiCli);
+        }
+
+        // ── Claude ────────────────────────────────────────────────────────────
+        if av("claude") {
+            models.push(Model::ClaudePrint);
+            models.push(Model::ClaudeCode);
+        }
+
+        // ── Agents ────────────────────────────────────────────────────────────
+        if av("amp") { models.push(Model::Amp); }
+        if av("vibe") || av("cursor") { models.push(Model::Vibe); }
+
+        // Nothing found — show a helpful placeholder
+        if models.is_empty() {
+            models.push(Model::Custom {
+                label:   "no models found".into(),
+                command: "echo".into(),
+                args:    vec!["install ollama, gemini-cli, or claude".into()],
+            });
+        }
+
+        models
     }
+}
+
+fn query_ollama_models() -> Vec<String> {
+    let Ok(out) = std::process::Command::new("ollama").arg("list").output() else { return vec![]; };
+    if !out.status.success() { return vec![]; }
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .skip(1) // skip header
+        .filter_map(|line| {
+            let name = line.split_whitespace().next()?;
+            if name.is_empty() { return None; }
+            Some(name.strip_suffix(":latest").unwrap_or(name).to_string())
+        })
+        .collect()
 }
 
 pub fn run(model: &Model, prompt: &str) -> Result<String> {
